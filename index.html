@@ -131,6 +131,7 @@ html,body{height:100%;overflow:hidden}body{height:100dvh;display:flex;align-item
 .creator-overlay{position:fixed;inset:0;z-index:60;background:#02050bf2;display:flex;align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(8px)}
 .creator-overlay[hidden]{display:none}
 .creator-card{width:min(620px,100%);max-height:calc(100dvh - 24px);overflow:auto;background:#111c2d;border:1px solid #3a4d6a;border-radius:20px;padding:clamp(18px,4vw,30px);text-align:center;box-shadow:0 24px 80px #000c}
+.creator-logo{display:block;width:min(440px,88%);height:auto;margin:0 auto 18px;filter:drop-shadow(0 10px 22px #0008)}
 .creator-card h2{margin:0 0 6px;font-size:clamp(22px,5vw,32px)}
 .creator-card p{margin:0 0 16px;color:#b4c2d5;font-size:13px;line-height:1.45}
 .creator-slots{display:grid;grid-template-columns:repeat(4,minmax(54px,78px));gap:8px;justify-content:center;margin:12px auto 16px}
@@ -161,7 +162,7 @@ html,body{height:100%;overflow:hidden}body{height:100dvh;display:flex;align-item
 .tile.dragging{opacity:.5;transform:scale(.94)}
 .home-link{display:inline-block;text-decoration:none}
 .ip-notice{margin:20px 0 0;padding-top:14px;border-top:1px solid #34445e;color:#8193aa;font-size:10px;line-height:1.5;text-align:center}.ip-notice strong{color:#b8c7da}
-.title{display:flex;align-items:center;justify-content:center;gap:9px}.header-logo{display:block;width:auto;height:clamp(22px,4.2vh,36px);max-width:52%}.header-version{font-size:.72em;line-height:1.05;text-align:left;white-space:nowrap}.header-detail{display:block;font-size:.67em;color:#b9c7d9;margin-top:2px}
+.title{display:flex;align-items:center;justify-content:center;gap:9px}.header-logo{display:block;width:auto;height:clamp(38px,6vh,56px);max-width:58%}.header-version{font-size:.72em;line-height:1.05;text-align:left;white-space:nowrap}.header-detail{display:block;font-size:.67em;color:#b9c7d9;margin-top:2px}@media(max-width:850px){.header-logo{height:clamp(22px,4.2vh,34px);max-width:48%}}
 </style>
 </head>
 <body>
@@ -610,7 +611,7 @@ function startFriendChallenge(code){
 }
 function buildFriendCreator(){
  creatorOverlay=document.createElement('div');creatorOverlay.className='creator-overlay';creatorOverlay.hidden=true;
- creatorOverlay.innerHTML='<div class="creator-card" role="dialog" aria-modal="true" aria-labelledby="creatorTitle"><h2 id="creatorTitle">CREATE A CODE</h2><p>Choose four colored shapes for a friend to decipher. Colors and shapes may repeat.</p><div class="creator-slots" id="creatorSlots"></div><div class="creator-palette" id="creatorPalette"></div><div class="creator-actions"><button class="new" id="clearCreatorBtn" type="button">CLEAR</button><button class="new" id="copyChallengeBtn" type="button">COPY CHALLENGE LINK</button></div><textarea class="creator-link" id="creatorLink" readonly hidden aria-label="Challenge link"></textarea><div class="creator-status" id="creatorStatus" aria-live="polite"></div></div>';
+ creatorOverlay.innerHTML=`<div class="creator-card" role="dialog" aria-modal="true" aria-labelledby="creatorTitle"><img class="creator-logo" src="${headerLogoSrc}" alt="CodeTest2"><h2 id="creatorTitle">CREATE A CODE</h2><p>Choose four colored shapes for a friend to decipher. Colors and shapes may repeat.</p><div class="creator-slots" id="creatorSlots"></div><div class="creator-palette" id="creatorPalette"></div><div class="creator-actions"><button class="new" id="clearCreatorBtn" type="button">CLEAR</button><button class="new" id="copyChallengeBtn" type="button">COPY CHALLENGE LINK</button></div><textarea class="creator-link" id="creatorLink" readonly hidden aria-label="Challenge link"></textarea><div class="creator-status" id="creatorStatus" aria-live="polite"></div></div>`;
  document.body.appendChild(creatorOverlay);
  creatorSlots=creatorOverlay.querySelector('#creatorSlots');creatorStatus=creatorOverlay.querySelector('#creatorStatus');creatorLink=creatorOverlay.querySelector('#creatorLink');copyChallengeButton=creatorOverlay.querySelector('#copyChallengeBtn');
  const palette=creatorOverlay.querySelector('#creatorPalette');
