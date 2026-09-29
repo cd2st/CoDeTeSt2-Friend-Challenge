@@ -163,6 +163,7 @@ html,body{height:100%;overflow:hidden}body{height:100dvh;display:flex;align-item
 .home-link{display:inline-block;text-decoration:none}
 .ip-notice{margin:20px 0 0;padding-top:14px;border-top:1px solid #34445e;color:#8193aa;font-size:10px;line-height:1.5;text-align:center}.ip-notice strong{color:#b8c7da}
 .title{display:flex;align-items:center;justify-content:center;gap:9px}.header-logo{display:block;width:auto;height:clamp(38px,6vh,56px);max-width:58%}.header-version{font-size:.72em;line-height:1.05;text-align:left;white-space:nowrap}.header-detail{display:block;font-size:.67em;color:#b9c7d9;margin-top:2px}@media(max-width:850px){.header-logo{height:clamp(22px,4.2vh,34px);max-width:48%}}
+.scripture{flex:0 0 auto;text-align:center;color:#b7c7db;font-size:clamp(8px,1.2vh,11px);line-height:1.25;letter-spacing:.015em}.scripture strong{color:#edf5ff}.scripture-top{margin:-2px 0 5px}.scripture-bottom{margin:5px 0 -1px}
 </style>
 </head>
 <body>
@@ -172,6 +173,7 @@ html,body{height:100%;overflow:hidden}body{height:100dvh;display:flex;align-item
     <div class="title">FRIEND CHALLENGE<br> (colors/shapes may repeat)</div>
     <div class="top-spacer">SHAPE &nbsp; | &nbsp; COLOR &nbsp; | &nbsp; COMBO</div>
   </div>
+  <div class="scripture scripture-top"><strong>“Test everything; hold fast what is good.”</strong> <em>(1 Thessalonians 5:21)</em></div>
   <div class="main-layout">
   <div class="sheet">
     <div id="board"></div>
@@ -196,6 +198,7 @@ html,body{height:100%;overflow:hidden}body{height:100dvh;display:flex;align-item
     </aside>
   </div>
   </div>
+  <div class="scripture scripture-bottom"><strong>“For nothing is hidden that will not be disclosed.”</strong> <em>(Luke 8:17)</em></div>
 </div>
 
 <div class="modal" id="modal"><div class="card"><h2 id="result"></h2><div class="small" id="resultText"></div><div class="small" id="elapsedTime"></div><div class="code" id="code"></div><button class="new" id="backToPuzzleBtn">BACK TO PUZZLE</button><button class="new" id="againBtn">PLAY AGAIN</button><a class="new home-link" href="https://cd2st.github.io/CoDeTeSt2/">GAME HOME</a><button class="new" id="shareBtn">SHARE RESULT</button><div class="small" id="shareStatus" role="status"></div><pre id="shareFallback" hidden></pre></div></div>
