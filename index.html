@@ -165,6 +165,7 @@ html,body{height:100%;overflow:hidden}body{height:100dvh;display:flex;align-item
 .title{display:flex;align-items:center;justify-content:center;gap:9px}.header-logo{display:block;width:auto;height:clamp(38px,6vh,56px);max-width:58%}.header-version{font-size:.72em;line-height:1.05;text-align:left;white-space:nowrap}.header-detail{display:block;font-size:.67em;color:#b9c7d9;margin-top:2px}@media(max-width:850px){.header-logo{height:clamp(22px,4.2vh,34px);max-width:48%}}
 .scripture{flex:0 0 auto;text-align:center;color:#b7c7db;font-size:clamp(8px,1.2vh,11px);line-height:1.25;letter-spacing:.015em}.scripture strong{color:#edf5ff}.scripture-top{margin:-2px 0 5px}.scripture-bottom{margin:5px 0 -1px}
 </style>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwODBkMTgiLz4KICA8Y2lyY2xlIGN4PSIyMiIgY3k9IjIyIiByPSIxMSIgZmlsbD0iIzI3ODdmZiIvPgogIDxwYXRoIGQ9Ik00MiAxMSA1NCAzMiAzMCAzMloiIGZpbGw9IiNmZmQyMjkiLz4KICA8cmVjdCB4PSIxNSIgeT0iMzkiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgcng9IjMiIGZpbGw9IiM5YjVkZTUiLz4KICA8cGF0aCBkPSJtNDYgMzkgMTIgMTAtMTIgMTAtMTItMTBaIiBmaWxsPSIjMjhiNjZmIi8+Cjwvc3ZnPgo=">
 </head>
 <body>
 <div class="app">
@@ -458,25 +459,27 @@ async function shareResult(){
  feedback.textContent='';fallback.hidden=true;
  const resultToShare=dailyResultText+'\n\nhttps://cd2st.github.io/CoDeTeSt2/';
  if(friendChallengeActive){
-   feedback.textContent='Preparing puzzle image…';
-   const blob=await createFriendResultImage();
-   const file=new File([blob],'CodeTest2-Friend-Challenge.png',{type:'image/png'});
-   if(navigator.share&&navigator.canShare?.({files:[file]})){
-     try{
-       await navigator.share({title:'CodeTest2 — Friend Challenge',text:resultToShare,files:[file]});
-       feedback.textContent='Result shared.';return;
-     }catch(error){if(error?.name==='AbortError'){feedback.textContent='Sharing canceled.';return;}}
+   const blob=preparedFriendResultBlob;
+   if(blob){
+     const file=new File([blob],'CodeTest2-Friend-Challenge.png',{type:'image/png'});
+     if(navigator.share&&navigator.canShare?.({files:[file]})){
+       try{
+         await navigator.share({title:'CodeTest2 — Friend Challenge',text:resultToShare,files:[file]});
+         feedback.textContent='Result shared with the completed-puzzle image.';return;
+       }catch(error){if(error?.name==='AbortError'){feedback.textContent='Sharing canceled.';return;}}
+     }
+     let copied=false;
+     try{if(navigator.clipboard){await navigator.clipboard.writeText(resultToShare);copied=true;}}catch(error){}
+     if(!copied){
+       const field=document.createElement('textarea');field.value=resultToShare;field.style.position='fixed';field.style.opacity='0';document.body.appendChild(field);field.select();
+       try{copied=document.execCommand('copy');}catch(error){}field.remove();
+     }
+     const imageUrl=URL.createObjectURL(blob),download=document.createElement('a');
+     download.href=imageUrl;download.download=file.name;download.click();setTimeout(()=>URL.revokeObjectURL(imageUrl),1000);
+     if(copied){feedback.textContent='Result copied and completed-puzzle image downloaded for sharing.';return;}
+     fallback.textContent=resultToShare;fallback.hidden=false;feedback.textContent='Puzzle image downloaded. Select and copy the result below:';return;
    }
-   if(navigator.clipboard?.write&&window.ClipboardItem){
-     try{
-       await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-       feedback.textContent='Puzzle image copied to clipboard.';return;
-     }catch(error){}
-   }
-   const imageUrl=URL.createObjectURL(blob),download=document.createElement('a');
-   download.href=imageUrl;download.download='CodeTest2-Friend-Challenge.png';download.click();
-   setTimeout(()=>URL.revokeObjectURL(imageUrl),1000);
-   feedback.textContent='Puzzle image downloaded. Attach it when sharing your result.';return;
+   feedback.textContent='The puzzle image was unavailable, so the text result will be copied.';
  }
  try{
    if(!navigator.clipboard)throw new Error('Clipboard unavailable');
@@ -505,13 +508,16 @@ function drawResultShape(ctx,piece,x,y,size){
  }
  ctx.fill();ctx.restore();
 }
-function createFriendResultImage(){
- const width=1080,rowHeight=130,headerHeight=190,solutionHeight=190,height=headerHeight+guesses.length*rowHeight+solutionHeight;
+async function createFriendResultImage(){
+ const logoImage=await new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>resolve(null);image.src=headerLogoSrc;});
+ const width=1080,rowHeight=130,headerHeight=290,solutionHeight=190,height=headerHeight+guesses.length*rowHeight+solutionHeight;
  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');
  ctx.fillStyle='#08111f';ctx.fillRect(0,0,width,height);ctx.strokeStyle='#30445f';ctx.lineWidth=3;ctx.strokeRect(18,18,width-36,height-36);
- ctx.fillStyle='#eef4ff';ctx.font='800 48px system-ui';ctx.textAlign='center';ctx.fillText('CodeTest2 — Friend Challenge',width/2,72);
- ctx.fillStyle='#9fb1c8';ctx.font='600 27px system-ui';ctx.fillText(document.getElementById('result').textContent+'  •  '+document.getElementById('elapsedTime').textContent,width/2,118);
- ctx.font='700 22px system-ui';ctx.fillText('GUESS',330,165);ctx.fillText('SHAPE',750,165);ctx.fillText('COLOR',865,165);ctx.fillText('COMBO',980,165);
+ if(logoImage){const logoWidth=520,logoHeight=Math.min(145,logoWidth*(logoImage.naturalHeight/logoImage.naturalWidth));ctx.drawImage(logoImage,(width-logoWidth)/2,28,logoWidth,logoHeight);}
+ else{ctx.fillStyle='#eef4ff';ctx.font='800 48px system-ui';ctx.textAlign='center';ctx.fillText('CodeTest2',width/2,86);}
+ ctx.fillStyle='#eef4ff';ctx.font='800 34px system-ui';ctx.textAlign='center';ctx.fillText('FRIEND CHALLENGE',width/2,205);
+ ctx.fillStyle='#9fb1c8';ctx.font='600 27px system-ui';ctx.fillText(document.getElementById('result').textContent+'  •  '+document.getElementById('elapsedTime').textContent,width/2,246);
+ ctx.font='700 22px system-ui';ctx.fillText('GUESS',330,280);ctx.fillText('SHAPE',750,280);ctx.fillText('COLOR',865,280);ctx.fillText('COMBO',980,280);
  const feedbackColors={black:'#17191f',gray:'#e7d3a7',empty:'#65758a'};
  guesses.forEach((round,index)=>{
    const top=headerHeight+index*rowHeight;ctx.fillStyle=index%2?'#0d1828':'#111e31';ctx.fillRect(38,top-5,width-76,rowHeight-10);
@@ -526,6 +532,7 @@ function createFriendResultImage(){
 function formatElapsed(milliseconds){const totalSeconds=Math.floor(milliseconds/1000),hours=Math.floor(totalSeconds/3600),minutes=Math.floor((totalSeconds%3600)/60),seconds=totalSeconds%60,unit=(value,name)=>`${value} ${name}${value===1?'':'s'}`;return `${unit(hours,'hour')}, ${unit(minutes,'minute')}, ${unit(seconds,'second')}`;}
 
 let creatorOverlay,creatorSlots,creatorStatus,creatorLink,copyChallengeButton;
+let preparedFriendResultBlob=null,friendResultImagePromise=null;
 let creatorCode=Array(4).fill(null),creatorSelectedSlot=0;
 
 function friendChecksum(values){
@@ -608,6 +615,7 @@ function openFriendCreator(message=''){
 }
 function startFriendChallenge(code){
  friendChallengeActive=true;practiceMode=false;creatorOverlay.hidden=true;document.querySelector('.title').innerHTML=dailyHeading;
+ preparedFriendResultBlob=null;friendResultImagePromise=null;
  startedAt=0;clockStarted=false;resetPause();secret=[...code];guesses=[];current=Array(4).fill(null);selectedSlot=null;undoStack=[];redoStack=[];
  document.getElementById('modal').classList.remove('show');shareButton.hidden=true;returnDailyButton.hidden=true;againButton.textContent='CREATE A CHALLENGE';
  render();if(!restoreFriendProgress())status.textContent='A friend created this code. Crack it in six guesses.';
@@ -632,6 +640,8 @@ endGame=function(win){
    dailyResultText=`CodeTest2 — Friend Challenge\n${displayDailyDate(dailyDateKey())}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}`;
    shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='CREATE A CHALLENGE';
    document.getElementById('resultText').textContent=win?`You cracked your friend's code in ${guesses.length} round${guesses.length===1?'':'s'}.`:'Your friend’s code was:';
+   shareButton.disabled=true;document.getElementById('shareStatus').textContent='Preparing the completed-puzzle image…';
+   friendResultImagePromise=createFriendResultImage().then(blob=>{preparedFriendResultBlob=blob;shareButton.disabled=false;document.getElementById('shareStatus').textContent='Result image ready to share.';return blob;}).catch(()=>{preparedFriendResultBlob=null;shareButton.disabled=false;document.getElementById('shareStatus').textContent='Result text is ready; the puzzle image could not be prepared.';return null;});
  }
 };
 
