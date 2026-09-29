@@ -462,7 +462,8 @@ async function shareResult(){
    const blob=preparedFriendResultBlob;
    if(blob){
      const file=new File([blob],'CodeTest2-Friend-Challenge.png',{type:'image/png'});
-     if(navigator.share&&navigator.canShare?.({files:[file]})){
+     const mobileFileSharing=navigator.userAgentData?.mobile===true||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+     if(mobileFileSharing&&navigator.share&&navigator.canShare?.({files:[file]})){
        try{
          await navigator.share({title:'CodeTest2 — Friend Challenge',text:resultToShare,files:[file]});
          feedback.textContent='Result shared with the completed-puzzle image.';return;
