@@ -469,6 +469,9 @@ async function shareResult(){
          feedback.textContent='Result shared with the completed-puzzle image.';return;
        }catch(error){if(error?.name==='AbortError'){feedback.textContent='Sharing canceled.';return;}}
      }
+     if(!mobileFileSharing&&navigator.clipboard?.write&&window.ClipboardItem){
+       try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);feedback.textContent='Result image copied. Paste it wherever you’d like to share it.';return;}catch(error){}
+     }
      let copied=false;
      try{if(navigator.clipboard){await navigator.clipboard.writeText(resultToShare);copied=true;}}catch(error){}
      if(!copied){
@@ -527,6 +530,7 @@ async function createFriendResultImage(){
  });
  const answerTop=headerHeight+guesses.length*rowHeight+20;ctx.fillStyle='#c6d5e8';ctx.font='800 25px system-ui';ctx.textAlign='left';ctx.fillText('SOLUTION',55,answerTop+58);
  secret.forEach((piece,index)=>{const cx=270+index*150,cy=answerTop+48;ctx.fillStyle='#16243a';ctx.fillRect(cx-52,cy-52,104,104);ctx.strokeStyle='#5e789c';ctx.strokeRect(cx-52,cy-52,104,104);drawResultShape(ctx,piece,cx,cy,80);});
+ ctx.fillStyle='#9fb1c8';ctx.font='600 18px system-ui';ctx.textAlign='center';ctx.fillText('cd2st.github.io/CoDeTeSt2/',width/2,height-30);
  return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Could not create puzzle image.')),'image/png'));
 }
 function formatElapsed(milliseconds){const totalSeconds=Math.floor(milliseconds/1000),hours=Math.floor(totalSeconds/3600),minutes=Math.floor((totalSeconds%3600)/60),seconds=totalSeconds%60,unit=(value,name)=>`${value} ${name}${value===1?'':'s'}`;return `${unit(hours,'hour')}, ${unit(minutes,'minute')}, ${unit(seconds,'second')}`;}
