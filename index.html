@@ -511,14 +511,13 @@ function drawResultShape(ctx,piece,x,y,size){
 }
 async function createFriendResultImage(){
  const logoImage=await new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>resolve(null);image.src=headerLogoSrc;});
- const width=1080,rowHeight=130,headerHeight=290,solutionHeight=190,height=headerHeight+guesses.length*rowHeight+solutionHeight;
+ if(!logoImage)throw new Error('CodeTest2 logo unavailable');
+ const width=1080,rowHeight=130,headerHeight=380,solutionHeight=190,height=headerHeight+guesses.length*rowHeight+solutionHeight;
  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');
  ctx.fillStyle='#08111f';ctx.fillRect(0,0,width,height);ctx.strokeStyle='#30445f';ctx.lineWidth=3;ctx.strokeRect(18,18,width-36,height-36);
- if(logoImage){const logoWidth=520,logoHeight=Math.min(145,logoWidth*(logoImage.naturalHeight/logoImage.naturalWidth));ctx.drawImage(logoImage,(width-logoWidth)/2,28,logoWidth,logoHeight);}
- else{ctx.fillStyle='#eef4ff';ctx.font='800 48px system-ui';ctx.textAlign='center';ctx.fillText('CodeTest2',width/2,86);}
- ctx.fillStyle='#eef4ff';ctx.font='800 34px system-ui';ctx.textAlign='center';ctx.fillText('FRIEND CHALLENGE',width/2,205);
- ctx.fillStyle='#9fb1c8';ctx.font='600 27px system-ui';ctx.fillText(document.getElementById('result').textContent+'  •  '+document.getElementById('elapsedTime').textContent,width/2,246);
- ctx.font='700 22px system-ui';ctx.fillText('GUESS',330,280);ctx.fillText('SHAPE',750,280);ctx.fillText('COLOR',865,280);ctx.fillText('COMBO',980,280);
+ {const logoWidth=520,logoHeight=Math.min(145,logoWidth*(logoImage.naturalHeight/logoImage.naturalWidth));ctx.drawImage(logoImage,(width-logoWidth)/2,28,logoWidth,logoHeight);}
+ ctx.fillStyle='#eef4ff';ctx.textAlign='center';dailyResultText.split('\n').forEach((line,index)=>{const displayed=index===0?line.replace(/^CodeTest2\s+—\s+/,''):line;ctx.font=index===0?'800 31px system-ui':'650 25px system-ui';ctx.fillText(displayed,width/2,190+index*36);});
+ ctx.fillStyle='#9fb1c8';ctx.font='700 22px system-ui';ctx.fillText('GUESS',330,365);ctx.fillText('SHAPE',750,365);ctx.fillText('COLOR',865,365);ctx.fillText('COMBO',980,365);
  const feedbackColors={black:'#17191f',gray:'#e7d3a7',empty:'#65758a'};
  guesses.forEach((round,index)=>{
    const top=headerHeight+index*rowHeight;ctx.fillStyle=index%2?'#0d1828':'#111e31';ctx.fillRect(38,top-5,width-76,rowHeight-10);
