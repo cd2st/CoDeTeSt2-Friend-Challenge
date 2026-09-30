@@ -457,20 +457,20 @@ async function shareResult(){
  const feedback=document.getElementById('shareStatus');
  const fallback=document.getElementById('shareFallback');
  feedback.textContent='';fallback.hidden=true;
- const resultToShare=dailyResultText+'\n\nhttps://cd2st.github.io/CoDeTeSt2/';
+ const shareUrl='https://cd2st.github.io/CoDeTeSt2/';
+ const resultToShare=dailyResultText+'\n\n'+shareUrl;
  if(friendChallengeActive){
    const blob=preparedFriendResultBlob;
    if(blob){
      const file=new File([blob],'CodeTest2-Friend-Challenge.png',{type:'image/png'});
-     const mobileFileSharing=navigator.userAgentData?.mobile===true||/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-     if(mobileFileSharing&&navigator.share&&navigator.canShare?.({files:[file]})){
+     if(navigator.share&&navigator.canShare?.({files:[file]})){
        try{
-         await navigator.share({title:'CodeTest2 — Friend Challenge',text:resultToShare,files:[file]});
-         feedback.textContent='Result shared with the completed-puzzle image.';return;
+         await navigator.share({title:'CodeTest2 — Friend Challenge',text:dailyResultText,url:shareUrl,files:[file]});
+         feedback.textContent='Completed-puzzle image and clickable game link shared.';return;
        }catch(error){if(error?.name==='AbortError'){feedback.textContent='Sharing canceled.';return;}}
      }
-     if(!mobileFileSharing&&navigator.clipboard?.write&&window.ClipboardItem){
-       try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);feedback.textContent='Result image copied. Paste it wherever you’d like to share it.';return;}catch(error){}
+     if(navigator.clipboard?.write&&window.ClipboardItem){
+       try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob,'text/plain':new Blob([resultToShare],{type:'text/plain'})})]);feedback.textContent='Completed-puzzle image and game link copied. Paste them wherever you’d like to share them.';return;}catch(error){}
      }
      let copied=false;
      try{if(navigator.clipboard){await navigator.clipboard.writeText(resultToShare);copied=true;}}catch(error){}
