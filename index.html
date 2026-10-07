@@ -474,7 +474,7 @@ function startPracticeGame(){
 function returnToDailyResult(){
  if(!dailySnapshot){newGame();return;}
  practiceMode=false;document.querySelector('.title').innerHTML=dailyHeading;secret=[...dailySnapshot.secret];guesses=dailySnapshot.guesses.map(row=>({g:[...row.g],fb:row.fb}));current=Array(4).fill(null);selectedSlot=null;render();
- const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(piece=>code.appendChild(makeShape(piece)));document.getElementById('elapsedTime').textContent='Time: '+dailySnapshot.elapsed;document.getElementById('result').textContent=dailySnapshot.win?'CODE CRACKED!':'OUT OF GUESSES';document.getElementById('resultText').textContent=dailySnapshot.win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';dailyResultText=dailySnapshot.resultText.replace(/\nNotes Mode: Not used/g,'');shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';gameOver=true;pauseButton.disabled=true;modal.classList.add('show');
+ const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(piece=>code.appendChild(makeShape(piece)));document.getElementById('elapsedTime').textContent='Time: '+dailySnapshot.elapsed;document.getElementById('result').textContent=dailySnapshot.win?'CODE CRACKED!':'OUT OF GUESSES';document.getElementById('resultText').textContent=dailySnapshot.win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';dailyResultText=dailySnapshot.resultText.replace(/\nNotes Mode: Not used/g,'').replace(/Notes Mode: Used/g,'Notes Mode Used');shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';gameOver=true;pauseButton.disabled=true;modal.classList.add('show');
 }
 function endGame(win){
  const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(p=>code.appendChild(makeShape(p)));
@@ -484,7 +484,7 @@ function endGame(win){
  if(practiceMode){
    shareButton.hidden=true;returnDailyButton.hidden=false;againButton.textContent='PLAY ANOTHER RANDOM';
  }else{
-   dailyResultText=`CodeTest2 — ${DAILY_LABEL}\n${displayDailyDate(activeDailyDate)}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${notesUsed?'\nNotes Mode: Used':''}`;
+   dailyResultText=`CodeTest2 — ${DAILY_LABEL}\n${displayDailyDate(activeDailyDate)}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${notesUsed?'\nNotes Mode Used':''}`;
    dailySnapshot={win,elapsed,resultText:dailyResultText,secret:[...secret],guesses:guesses.map(row=>({g:[...row.g],fb:row.fb}))};shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';
  }
  document.getElementById('shareStatus').textContent='';
@@ -696,7 +696,7 @@ endGame=function(win){
  standardEndGame(win);
  if(friendChallengeActive){
    const elapsed=formatElapsed(elapsedMilliseconds());
-   dailyResultText=`CodeTest2 — Friend Challenge\n${displayDailyDate(dailyDateKey())}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${notesUsed?'\nNotes Mode: Used':''}`;
+   dailyResultText=`CodeTest2 — Friend Challenge\n${displayDailyDate(dailyDateKey())}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${notesUsed?'\nNotes Mode Used':''}`;
    shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='CREATE A CHALLENGE';
    document.getElementById('resultText').textContent=win?`You cracked your friend's code in ${guesses.length} round${guesses.length===1?'':'s'}.`:'Your friend’s code was:';
    shareButton.disabled=true;document.getElementById('shareStatus').textContent='Preparing the completed-puzzle image…';
