@@ -474,7 +474,7 @@ function startPracticeGame(){
 function returnToDailyResult(){
  if(!dailySnapshot){newGame();return;}
  practiceMode=false;document.querySelector('.title').innerHTML=dailyHeading;secret=[...dailySnapshot.secret];guesses=dailySnapshot.guesses.map(row=>({g:[...row.g],fb:row.fb}));current=Array(4).fill(null);selectedSlot=null;render();
- const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(piece=>code.appendChild(makeShape(piece)));document.getElementById('elapsedTime').textContent='Time: '+dailySnapshot.elapsed;document.getElementById('result').textContent=dailySnapshot.win?'CODE CRACKED!':'OUT OF GUESSES';document.getElementById('resultText').textContent=dailySnapshot.win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';dailyResultText=dailySnapshot.resultText.replace(/\nNotes Mode: Not used/g,'').replace(/Notes Mode: Used/g,'Notes Mode Used');shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';gameOver=true;pauseButton.disabled=true;modal.classList.add('show');
+ const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(piece=>code.appendChild(makeShape(piece)));document.getElementById('elapsedTime').textContent='Time: '+normalizeResultTime(dailySnapshot.elapsed);document.getElementById('result').textContent=dailySnapshot.win?'CODE CRACKED!':'OUT OF GUESSES';document.getElementById('resultText').textContent=dailySnapshot.win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';dailyResultText=normalizeResultTime(dailySnapshot.resultText).replace(/\nNotes Mode: Not used/g,'').replace(/Notes Mode: Used/g,'Notes Mode Used');shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';gameOver=true;pauseButton.disabled=true;modal.classList.add('show');
 }
 function endGame(win){
  const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(p=>code.appendChild(makeShape(p)));
@@ -588,7 +588,8 @@ async function createFriendResultImage(){
  ctx.fillStyle='#9fb1c8';ctx.font='600 18px system-ui';ctx.textAlign='center';ctx.fillText('cd2st.github.io/CoDeTeSt2/',width/2,height-30);
  return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Could not create puzzle image.')),'image/png'));
 }
-function formatElapsed(milliseconds){const totalSeconds=Math.floor(milliseconds/1000),hours=Math.floor(totalSeconds/3600),minutes=Math.floor((totalSeconds%3600)/60),seconds=totalSeconds%60,unit=(value,name)=>`${value} ${name}${value===1?'':'s'}`;return `${unit(hours,'hour')}, ${unit(minutes,'minute')}, ${unit(seconds,'second')}`;}
+function formatElapsed(milliseconds){const totalSeconds=Math.floor(milliseconds/1000),minutes=Math.floor(totalSeconds/60),seconds=totalSeconds%60,unit=(value,name)=>`${value} ${name}${value===1?'':'s'}`;return `${unit(minutes,'minute')}, ${unit(seconds,'second')}`;}
+function normalizeResultTime(text){return String(text).replace(/(\d+) hours?, (\d+) minutes?, (\d+) seconds?/g,(_,h,m,s)=>formatElapsed((Number(h)*3600+Number(m)*60+Number(s))*1000));}
 
 let creatorOverlay,creatorSlots,creatorStatus,creatorLink,copyChallengeButton;
 let preparedFriendResultBlob=null,friendResultImagePromise=null;
