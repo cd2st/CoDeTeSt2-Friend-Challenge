@@ -230,10 +230,17 @@ const notesButton=document.getElementById('notesBtn'),clearNotesButton=document.
 let notesMode=false,notesUsed=false,activeNotesKey='',ruledOutShapes=new Set(),ruledOutColors=new Set(),ruledOutCombos=new Set(),pendingEliminatedAlertSlot=null;
 const comboKey=p=>`${p.color}|${p.shape}`;
 function notesStorageKey(){const signature=secret.length===4?secret.map(p=>`${p.color}-${p.shape}`).join('_'):'pending';return `CoDeTeSt2.notes.friend-challenge.${signature}`;}
-function ensureNotesForCurrentPuzzle(){const key=notesStorageKey();if(key===activeNotesKey)return false;activeNotesKey=key;let saved=null;try{saved=JSON.parse(localStorage.getItem(key)||'null');}catch(e){}ruledOutShapes=new Set(saved?.shapes||[]);ruledOutColors=new Set(saved?.colors||[]);ruledOutCombos=new Set(saved?.combos||[]);notesUsed=!!saved?.used;return true;}
+function ensureNotesForCurrentPuzzle(){const key=notesStorageKey();if(key===activeNotesKey)return false;activeNotesKey=key;pendingNotesAccident=null;notesUndoCancellation=null;let saved=null;try{saved=JSON.parse(localStorage.getItem(key)||'null');}catch(e){}ruledOutShapes=new Set(saved?.shapes||[]);ruledOutColors=new Set(saved?.colors||[]);ruledOutCombos=new Set(saved?.combos||[]);notesUsed=!!saved?.used;return true;}
 function saveNotes(){if(!activeNotesKey)ensureNotesForCurrentPuzzle();try{localStorage.setItem(activeNotesKey,JSON.stringify({shapes:[...ruledOutShapes],colors:[...ruledOutColors],combos:[...ruledOutCombos],used:notesUsed}));}catch(e){}}
 function isRuledOut(p){if(!p)return false;if(p.placeholderType==='shape')return ruledOutShapes.has(p.shape);if(p.placeholderType==='color')return ruledOutColors.has(p.color);return ruledOutShapes.has(p.shape)||ruledOutColors.has(p.color)||ruledOutCombos.has(comboKey(p));}
-function toggleRuledOut(p){ensureNotesForCurrentPuzzle();let set,key,label;if(p.placeholderType==='shape'){set=ruledOutShapes;key=p.shape;label=`${p.shape} in every color`;}else if(p.placeholderType==='color'){set=ruledOutColors;key=p.color;label=`${p.color} in every shape`;}else{set=ruledOutCombos;key=comboKey(p);label=`${p.color} ${p.shape}`;}const restoring=set.has(key);restoring?set.delete(key):set.add(key);notesUsed=true;saveNotes();renderPool();render();status.textContent=`${label} ${restoring?'restored':'marked as ruled out'}.`;}
+let pendingNotesAccident=null,notesUndoCancellation=null;
+function noteUndoState(){return {kind:'notes',puzzleKey:activeNotesKey,shapes:[...ruledOutShapes],colors:[...ruledOutColors],combos:[...ruledOutCombos],used:notesUsed};}
+function restoreNoteUndoState(state){ruledOutShapes=new Set(state.shapes||[]);ruledOutColors=new Set(state.colors||[]);ruledOutCombos=new Set(state.combos||[]);saveNotes();renderPool();render();}
+function undoNoteChange(){const previous=undoStack[undoStack.length-1];if(previous?.kind!=='notes')return false;undoStack.pop();if(previous.puzzleKey!==activeNotesKey){pendingNotesAccident=null;notesUndoCancellation=null;render();return true;}redoStack.push(noteUndoState());if(redoStack.length>50)redoStack.shift();notesUndoCancellation=notesMode&&pendingNotesAccident===previous?{used:previous.used,puzzleKey:activeNotesKey}:null;pendingNotesAccident=null;restoreNoteUndoState(previous);status.textContent='Last change undone.';return true;}
+function redoNoteChange(){const next=redoStack[redoStack.length-1];if(next?.kind!=='notes')return false;redoStack.pop();pendingNotesAccident=null;notesUndoCancellation=null;if(next.puzzleKey!==activeNotesKey){render();return true;}undoStack.push(noteUndoState());if(undoStack.length>50)undoStack.shift();notesUsed=true;restoreNoteUndoState(next);status.textContent='Change restored.';return true;}
+function finishNotesMode(){if(notesMode&&notesUndoCancellation?.puzzleKey===activeNotesKey){notesUsed=notesUndoCancellation.used;saveNotes();}pendingNotesAccident=null;notesUndoCancellation=null;}
+document.addEventListener('click',event=>{const button=event.target.closest?.('button');if(button?.id==='undoBtn')return;if(button===notesButton&&notesMode&&notesUndoCancellation)return;pendingNotesAccident=null;notesUndoCancellation=null;},true);
+function toggleRuledOut(p){ensureNotesForCurrentPuzzle();const noteBefore=noteUndoState();undoStack.push(noteBefore);if(undoStack.length>50)undoStack.shift();redoStack=[];pendingNotesAccident=noteBefore;notesUndoCancellation=null;let set,key,label;if(p.placeholderType==='shape'){set=ruledOutShapes;key=p.shape;label=`${p.shape} in every color`;}else if(p.placeholderType==='color'){set=ruledOutColors;key=p.color;label=`${p.color} in every shape`;}else{set=ruledOutCombos;key=comboKey(p);label=`${p.color} ${p.shape}`;}const restoring=set.has(key);restoring?set.delete(key):set.add(key);notesUsed=true;saveNotes();renderPool();render();status.textContent=`${label} ${restoring?'restored':'marked as ruled out'}.`;}
 function updateNotesControls(){notesButton.classList.toggle('active',notesMode);notesButton.setAttribute('aria-pressed',String(notesMode));notesButton.textContent=`NOTES MODE: ${notesMode?'ON':'OFF'}`;tiles.classList.toggle('notes-mode',notesMode);render();}
 function decorateRuledOutGuess(){for(let i=0;i<4;i++){const cell=document.querySelector(`[data-guess-index="${i}"]`);if(!cell||!current[i])continue;const eliminated=notesMode&&isRuledOut(current[i]);cell.classList.toggle('ruled-out-guess',eliminated);if(eliminated&&pendingEliminatedAlertSlot===i){cell.classList.add('eliminated-wiggle');setTimeout(()=>cell.classList.remove('eliminated-wiggle'),700);}}pendingEliminatedAlertSlot=null;}
 
@@ -392,9 +399,12 @@ function render(){
  if(ensureNotesForCurrentPuzzle())renderPool();
  decorateRuledOutGuess();
 }
-function recordUndo(){undoStack.push({current:[...current],selectedSlot});if(undoStack.length>50)undoStack.shift();redoStack=[];}
-function undoGuess(){const previous=undoStack.pop();if(!previous)return;redoStack.push({current:[...current],selectedSlot});if(redoStack.length>50)redoStack.shift();current=[...previous.current];selectedSlot=previous.selectedSlot;render();status.textContent=undoStack.length?'Last change undone. You can undo again.':'Last change undone.';}
-function redoGuess(){const next=redoStack.pop();if(!next)return;undoStack.push({current:[...current],selectedSlot});if(undoStack.length>50)undoStack.shift();current=[...next.current];selectedSlot=next.selectedSlot;render();status.textContent=redoStack.length?'Change restored. You can redo again.':'Change restored.';}
+function recordUndo(){
+ pendingNotesAccident=null;notesUndoCancellation=null;undoStack.push({current:[...current],selectedSlot});if(undoStack.length>50)undoStack.shift();redoStack=[];}
+function undoGuess(){
+ if(undoNoteChange())return;pendingNotesAccident=null;notesUndoCancellation=null;const previous=undoStack.pop();if(!previous)return;redoStack.push({current:[...current],selectedSlot});if(redoStack.length>50)redoStack.shift();current=[...previous.current];selectedSlot=previous.selectedSlot;render();status.textContent=undoStack.length?'Last change undone. You can undo again.':'Last change undone.';}
+function redoGuess(){
+ if(redoNoteChange())return;pendingNotesAccident=null;notesUndoCancellation=null;const next=redoStack.pop();if(!next)return;undoStack.push({current:[...current],selectedSlot});if(undoStack.length>50)undoStack.shift();current=[...next.current];selectedSlot=next.selectedSlot;render();status.textContent=redoStack.length?'Change restored. You can redo again.':'Change restored.';}
 const DAILY_MODE='mayRepeat';
 const DAILY_LABEL='CHALLENGE (May Repeat)';
 let dailyResultText='',practiceMode=false,dailySnapshot=null,friendChallengeActive=false;
@@ -464,7 +474,7 @@ function startPracticeGame(){
 function returnToDailyResult(){
  if(!dailySnapshot){newGame();return;}
  practiceMode=false;document.querySelector('.title').innerHTML=dailyHeading;secret=[...dailySnapshot.secret];guesses=dailySnapshot.guesses.map(row=>({g:[...row.g],fb:row.fb}));current=Array(4).fill(null);selectedSlot=null;render();
- const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(piece=>code.appendChild(makeShape(piece)));document.getElementById('elapsedTime').textContent='Time: '+dailySnapshot.elapsed;document.getElementById('result').textContent=dailySnapshot.win?'CODE CRACKED!':'OUT OF GUESSES';document.getElementById('resultText').textContent=dailySnapshot.win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';dailyResultText=dailySnapshot.resultText;shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';gameOver=true;pauseButton.disabled=true;modal.classList.add('show');
+ const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(piece=>code.appendChild(makeShape(piece)));document.getElementById('elapsedTime').textContent='Time: '+dailySnapshot.elapsed;document.getElementById('result').textContent=dailySnapshot.win?'CODE CRACKED!':'OUT OF GUESSES';document.getElementById('resultText').textContent=dailySnapshot.win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';dailyResultText=dailySnapshot.resultText.replace(/\nNotes Mode: Not used/g,'');shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';gameOver=true;pauseButton.disabled=true;modal.classList.add('show');
 }
 function endGame(win){
  const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(p=>code.appendChild(makeShape(p)));
@@ -474,7 +484,7 @@ function endGame(win){
  if(practiceMode){
    shareButton.hidden=true;returnDailyButton.hidden=false;againButton.textContent='PLAY ANOTHER RANDOM';
  }else{
-   dailyResultText=`CodeTest2 — ${DAILY_LABEL}\n${displayDailyDate(activeDailyDate)}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}\nNotes Mode: ${notesUsed?'Used':'Not used'}`;
+   dailyResultText=`CodeTest2 — ${DAILY_LABEL}\n${displayDailyDate(activeDailyDate)}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${notesUsed?'\nNotes Mode: Used':''}`;
    dailySnapshot={win,elapsed,resultText:dailyResultText,secret:[...secret],guesses:guesses.map(row=>({g:[...row.g],fb:row.fb}))};shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';
  }
  document.getElementById('shareStatus').textContent='';
@@ -686,7 +696,7 @@ endGame=function(win){
  standardEndGame(win);
  if(friendChallengeActive){
    const elapsed=formatElapsed(elapsedMilliseconds());
-   dailyResultText=`CodeTest2 — Friend Challenge\n${displayDailyDate(dailyDateKey())}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}\nNotes Mode: ${notesUsed?'Used':'Not used'}`;
+   dailyResultText=`CodeTest2 — Friend Challenge\n${displayDailyDate(dailyDateKey())}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${notesUsed?'\nNotes Mode: Used':''}`;
    shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='CREATE A CHALLENGE';
    document.getElementById('resultText').textContent=win?`You cracked your friend's code in ${guesses.length} round${guesses.length===1?'':'s'}.`:'Your friend’s code was:';
    shareButton.disabled=true;document.getElementById('shareStatus').textContent='Preparing the completed-puzzle image…';
@@ -694,7 +704,7 @@ endGame=function(win){
  }
 };
 
-document.getElementById('submitBtn').onclick=submit;document.getElementById('undoBtn').onclick=undoGuess;document.getElementById('redoBtn').onclick=redoGuess;document.getElementById('clearBtn').onclick=clearGuess;againButton.onclick=startPracticeGame;shareButton.onclick=shareResult;returnDailyButton.onclick=returnToDailyResult;pauseButton.onclick=pauseGame;resumeButton.onclick=resumeGame;notesButton.onclick=()=>{notesMode=!notesMode;updateNotesControls();renderPool();status.textContent=notesMode?'Notes Mode is on. Tap to mark items; drag to test a ruled-out item in your guess.':'Notes Mode is off. Palette items now build your guess.';};
+document.getElementById('submitBtn').onclick=submit;document.getElementById('undoBtn').onclick=undoGuess;document.getElementById('redoBtn').onclick=redoGuess;document.getElementById('clearBtn').onclick=clearGuess;againButton.onclick=startPracticeGame;shareButton.onclick=shareResult;returnDailyButton.onclick=returnToDailyResult;pauseButton.onclick=pauseGame;resumeButton.onclick=resumeGame;notesButton.onclick=()=>{finishNotesMode();notesMode=!notesMode;updateNotesControls();renderPool();status.textContent=notesMode?'Notes Mode is on. Tap to mark items; drag to test a ruled-out item in your guess.':'Notes Mode is off. Palette items now build your guess.';};
 clearNotesButton.onclick=()=>{ensureNotesForCurrentPuzzle();ruledOutShapes.clear();ruledOutColors.clear();ruledOutCombos.clear();saveNotes();renderPool();render();status.textContent='All elimination notes for this puzzle were cleared.';};
 renderPool();updateNotesControls();newGame();buildFriendCreator();againButton.onclick=()=>openFriendCreator();const initialFriendCode=challengeFromHash();if(initialFriendCode)startFriendChallenge(initialFriendCode);else openFriendCreator(location.hash?'That challenge link is invalid. Create a new code below.':'');setInterval(checkDailyRollover,1000);setInterval(saveFriendProgress,1000);window.addEventListener('pagehide',saveFriendProgress);board.addEventListener('pointerdown',startClockOnActivity,true);board.addEventListener('keydown',startClockOnActivity,true);tiles.addEventListener('pointerdown',startClockOnActivity,true);tiles.addEventListener('keydown',startClockOnActivity,true);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveFriendProgress();else checkDailyRollover();});
 </script>
