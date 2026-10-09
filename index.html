@@ -511,68 +511,36 @@ function endGame(win){
  document.getElementById('result').textContent=win?'CODE CRACKED!':'OUT OF GUESSES';
  document.getElementById('resultText').textContent=win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';modal.classList.add('show');
 }
-function openDesktopSharePanel(blob,fileName,resultToShare){
- const previous=document.getElementById('desktopSharePanel');if(previous)previous.remove();
+function openDesktopSharePanel(blob,fileName,resultToShare,shareKind){
+ const old=document.getElementById('desktopSharePanel');if(old)old.remove();
  const overlay=document.createElement('div');overlay.id='desktopSharePanel';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Share result');
- overlay.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(2,7,14,.82);display:flex;align-items:center;justify-content:center;padding:18px';
- const panel=document.createElement('div');panel.style.cssText='width:min(430px,100%);max-height:92vh;overflow:auto;background:#111e31;color:#eef4ff;border:2px solid #5e789c;border-radius:16px;padding:20px;box-shadow:0 18px 55px rgba(0,0,0,.55);font:600 15px/1.4 system-ui;text-align:center';
- panel.innerHTML='<h2 style="margin:0 0 14px;font-size:24px">SHARE RESULT</h2><div data-buttons style="display:grid;gap:9px"></div><div data-status role="status" style="min-height:22px;margin-top:12px;color:#ffe08a"></div>';
+ overlay.style.cssText='position:fixed;inset:0;z-index:10000;background:#02070ee8;display:flex;align-items:center;justify-content:center;padding:18px';
+ const panel=document.createElement('div');panel.style.cssText='width:min(430px,100%);max-height:92dvh;overflow:auto;background:#111e31;color:#eef4ff;border:2px solid #5e789c;border-radius:16px;padding:20px;font:600 15px/1.4 system-ui;text-align:center';
+ panel.innerHTML='<h2 style="margin:0 0 14px">SHARE RESULT</h2><div data-buttons style="display:grid;gap:9px"></div><div data-status role="status" style="min-height:22px;margin-top:12px;color:#ffe08a"></div>';
  const buttons=panel.querySelector('[data-buttons]'),status=panel.querySelector('[data-status]');
- const gameUrlPattern=/https:\/\/cd2st\.github\.io\/CoDeTeSt2\/(?:\?share=2)?/gi,foundUrls=resultToShare.match(gameUrlPattern)||[],normalizedResult=resultToShare.replace(gameUrlPattern,'').trim()+(foundUrls[0]?'\n\n'+foundUrls[0]:'');
- const addButton=(label,action)=>{const button=document.createElement('button');button.type='button';button.textContent=label;button.style.cssText='width:100%;padding:11px 12px;border:1px solid #7189a8;border-radius:9px;background:#243957;color:#fff;font:800 14px system-ui;cursor:pointer';button.onclick=action;buttons.appendChild(button);return button;};
- const copyText=async()=>{try{await navigator.clipboard.writeText(normalizedResult);status.textContent='One written result and one clickable link copied. Paste them into your message.';}catch(error){const field=document.createElement('textarea');field.value=normalizedResult;field.style.cssText='position:fixed;opacity:0';document.body.appendChild(field);field.select();let copied=false;try{copied=document.execCommand('copy');}catch(e){}field.remove();status.textContent=copied?'One written result and one clickable link copied. Paste them into your message.':'Copying was blocked by the browser. Select the result from the game’s fallback text.';}};
- const imageButton=addButton('COPY IMAGE',async()=>{if(!blob)return;try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);status.textContent='Image copied. Paste it into your message.';}catch(error){status.textContent='Your browser blocked image copying.';}});
- if(!blob){imageButton.disabled=true;imageButton.style.opacity='.45';}
- addButton('CLOSE',()=>overlay.remove());
- overlay.appendChild(panel);document.body.appendChild(overlay);overlay.addEventListener('click',event=>{if(event.target===overlay)overlay.remove();});
+ const addButton=(label,action)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='width:100%;padding:11px;border:1px solid #7189a8;border-radius:9px;background:#243957;color:#fff;font:800 14px system-ui';b.onclick=action;buttons.appendChild(b);return b;};
+ const text=document.createElement('textarea');text.value=resultToShare;text.readOnly=true;text.setAttribute('aria-label','Written result and game link');text.style.cssText='width:100%;height:140px;margin-top:12px;background:#0b1524;color:#eef4ff;border:1px solid #52647c;border-radius:8px;padding:8px;box-sizing:border-box';
+ const file=blob&&typeof File==='function'?new File([blob],fileName,{type:'image/png'}):null;
+ let canShareImage=false;try{canShareImage=!!(file&&navigator.share&&navigator.canShare?.({files:[file]}));}catch(e){}
+ if(shareKind==='image'){
+ const shareImageButton=addButton('SHARE IMAGE',async()=>{try{await navigator.share({files:[file],text:resultToShare});status.textContent='Sharing handoff finished. Check the app you selected to finish sending.';}catch(e){status.textContent=e.name==='AbortError'?'Sharing canceled.':'Sharing was blocked. Use SAVE IMAGE or copy the result below.';}});const subtitle=document.createElement('small');subtitle.textContent=canShareImage?'Choose Messenger in your phone’s share menu.':'Image sharing unavailable here; use Save Image.';subtitle.style.cssText='display:block;font-size:11px;font-weight:500;margin-top:4px;line-height:1.3';shareImageButton.appendChild(subtitle);shareImageButton.disabled=!canShareImage;if(!canShareImage)shareImageButton.style.opacity='.55';
+ if(blob){const url=URL.createObjectURL(blob);addButton('SAVE IMAGE',()=>{const a=document.createElement('a');a.href=url;a.download=fileName;panel.appendChild(a);a.click();a.remove();status.textContent='If no download starts, press and hold the image below to save it.';});const img=document.createElement('img');img.src=url;img.alt='Your result image. Press and hold to save.';img.style.cssText='display:block;width:100%;height:auto;margin-top:12px;border-radius:8px';panel.appendChild(img);overlay.addEventListener('share-panel-close',()=>URL.revokeObjectURL(url),{once:true});}
+ }
+ const resultOnly=resultToShare.split(/\r?\n/).filter(line=>!/^\s*https?:\/\/\S+\s*$/i.test(line)).join('\n').trim();
+ const copyWritten=async(value,success)=>{text.value=value;try{if(!navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');await navigator.clipboard.writeText(value);status.textContent=success;}catch(e){text.focus();text.select();text.setSelectionRange(0,text.value.length);let copied=false;try{copied=document.execCommand('copy');}catch(err){}status.textContent=copied?success:'Press and hold the selected result below, then choose Copy.';}};
+ addButton('COPY RESULT',()=>copyWritten(resultOnly,'Written result copied without an image or link.'));
+ addButton('COPY RESULT & LINK',()=>copyWritten(resultToShare,'Written result and game link copied.'));
+ if(blob){const imageButton=addButton('COPY IMAGE',async()=>{try{if(!navigator.clipboard?.write||typeof ClipboardItem!=='function')throw new Error('Image clipboard unavailable');await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);status.textContent='Puzzle image copied.';}catch(e){status.textContent='Image copying is unavailable here. Use Copy Result or Copy Result & Link.';}});}
+ panel.appendChild(text);
+ const close=()=>{overlay.dispatchEvent(new Event('share-panel-close'));overlay.remove();};addButton('CLOSE',close);overlay.appendChild(panel);document.body.appendChild(overlay);overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
 }
+
 async function shareResult(){
  const feedback=document.getElementById('shareStatus');
  const fallback=document.getElementById('shareFallback');
  feedback.textContent='';fallback.hidden=true;
- const shareUrl='https://cd2st.github.io/CoDeTeSt2/';
- const resultToShare=dailyResultText+'\n\n'+shareUrl;
- if(friendChallengeActive){
-   const blob=preparedFriendResultBlob;
-   if(blob){
-     const file=new File([blob],'CodeTest2-Friend-Challenge.png',{type:'image/png'});
-     openDesktopSharePanel(blob,file.name,resultToShare);return;
-     if(navigator.share&&navigator.canShare?.({files:[file]})){
-       try{
-         await navigator.share({title:'CodeTest2 — Friend Challenge',text:dailyResultText,url:shareUrl,files:[file]});
-         feedback.textContent='Completed-puzzle image and clickable game link shared.';return;
-       }catch(error){if(error?.name==='AbortError'){feedback.textContent='Sharing canceled.';return;}}
-     }
-     if(navigator.clipboard?.write&&window.ClipboardItem){
-       try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob,'text/plain':new Blob([resultToShare],{type:'text/plain'})})]);feedback.textContent='Completed-puzzle image and game link copied. Paste them wherever you’d like to share them.';return;}catch(error){}
-     }
-     let copied=false;
-     try{if(navigator.clipboard){await navigator.clipboard.writeText(resultToShare);copied=true;}}catch(error){}
-     if(!copied){
-       const field=document.createElement('textarea');field.value=resultToShare;field.style.position='fixed';field.style.opacity='0';document.body.appendChild(field);field.select();
-       try{copied=document.execCommand('copy');}catch(error){}field.remove();
-     }
-     const imageUrl=URL.createObjectURL(blob),download=document.createElement('a');
-     download.href=imageUrl;download.download=file.name;download.click();setTimeout(()=>URL.revokeObjectURL(imageUrl),1000);
-     if(copied){feedback.textContent='Result copied and completed-puzzle image downloaded for sharing.';return;}
-     fallback.textContent=resultToShare;fallback.hidden=false;feedback.textContent='Puzzle image downloaded. Select and copy the result below:';return;
-   }
-   feedback.textContent='The puzzle image was unavailable, so the text result will be copied.';
- }
- try{
-   if(!navigator.clipboard)throw new Error('Clipboard unavailable');
-   await navigator.clipboard.writeText(resultToShare);
-   feedback.textContent='Result copied to clipboard.';return;
- }catch(error){}
- const field=document.createElement('textarea');
- field.value=resultToShare;field.style.position='fixed';field.style.opacity='0';
- document.body.appendChild(field);field.select();
- let copied=false;
- try{copied=document.execCommand('copy');}catch(error){}
- field.remove();
- if(copied){feedback.textContent='Result copied to clipboard.';return;}
- fallback.textContent=resultToShare;fallback.hidden=false;
- feedback.textContent='Select and copy the result below:';
+ const resultToShare=dailyResultText+'\n\nhttps://cd2st.github.io/CoDeTeSt2/?share=2';
+ openDesktopSharePanel(preparedFriendResultBlob,'CodeTest2-Friend-Challenge.png',resultToShare,'text');
 }
 
 function drawResultShape(ctx,piece,x,y,size){
@@ -719,8 +687,8 @@ endGame=function(win){
    dailyResultText=`CodeTest2 — Friend Challenge\n${displayDailyDate(dailyDateKey())}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${notesUsed?'\nNotes Mode Used':''}`;
    shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='CREATE A CHALLENGE';
    document.getElementById('resultText').textContent=win?`You cracked your friend's code in ${guesses.length} round${guesses.length===1?'':'s'}.`:'Your friend’s code was:';
-   shareButton.disabled=true;document.getElementById('shareStatus').textContent='Preparing the completed-puzzle image…';
-   friendResultImagePromise=createFriendResultImage().then(blob=>{preparedFriendResultBlob=blob;shareButton.disabled=false;document.getElementById('shareStatus').textContent='Result image ready to share.';return blob;}).catch(()=>{preparedFriendResultBlob=null;shareButton.disabled=false;document.getElementById('shareStatus').textContent='Result text is ready; the puzzle image could not be prepared.';return null;});
+   preparedFriendResultBlob=null;shareButton.disabled=false;document.getElementById('shareStatus').textContent='';
+   friendResultImagePromise=createFriendResultImage().then(blob=>{preparedFriendResultBlob=blob;shareButton.disabled=false;return blob;}).catch(()=>{preparedFriendResultBlob=null;shareButton.disabled=false;return null;});
  }
 };
 
