@@ -178,6 +178,19 @@ html,body{height:100%;overflow:hidden}body{height:100dvh;display:flex;align-item
 .guess-piece.eliminated-wiggle{animation:eliminatedWiggle .62s ease-in-out}
 @keyframes eliminatedWiggle{0%,100%{transform:translateX(0)}15%{transform:translateX(-6px) rotate(-2deg)}30%{transform:translateX(6px) rotate(2deg)}45%{transform:translateX(-5px) rotate(-2deg)}60%{transform:translateX(5px) rotate(2deg)}75%{transform:translateX(-3px)}90%{transform:translateX(3px)}}
 
+
+/* Clearer grouped feedback, retaining dark-first vertical ordering. */
+.feedback-stack{gap:2px;padding:2px;background:#101827;border:1px solid #61738c;border-radius:5px;overflow:hidden;margin-left:2px}
+.feedback-stack .label-row{color:#edf3fa;background:#18263a;font-size:10px;font-weight:850;letter-spacing:0;border:0}
+.feedback-cell{border:0;border-radius:2px}
+.feedback-cell.empty{background:#39475a}
+.feedback-cell.black{background:#05070b!important;box-shadow:inset 0 0 0 1px #8592a4!important}
+.feedback-cell.gray{background:#fff!important;box-shadow:inset 0 0 0 1px #d7dfe8!important}
+.round-block{grid-template-columns:40px repeat(4,minmax(0,1fr)) 6px repeat(3,minmax(44px,54px))}
+@media(max-width:850px){
+ .round-block{grid-template-columns:24px repeat(4,minmax(0,1fr)) 4px repeat(3,minmax(39px,calc(34vw / 3)))}
+ .feedback-stack .label-row{font-size:9px}
+}
 </style>
 </head>
 <body>
