@@ -237,6 +237,23 @@ const MAX_GUESSES = 6;
 const DAILY_TIME_ZONE = 'America/Chicago';
 const UNDO_HISTORY_LIMIT = 50;
 
+let completionTimestamp=null,restoredCompletionTimestamp;
+function completionLine(){
+ if(!completionTimestamp)return '';
+ const date=new Date(completionTimestamp);
+ if(!Number.isFinite(date.getTime()))return '';
+ const day=new Intl.DateTimeFormat('en-US',{timeZone:DAILY_TIME_ZONE,month:'2-digit',day:'2-digit',year:'2-digit'}).format(date);
+ const time=new Intl.DateTimeFormat('en-US',{timeZone:DAILY_TIME_ZONE,hour:'numeric',minute:'2-digit',hour12:true}).format(date);
+ return `Solved: ${day} at ${time} CT`;
+}
+function showCompletionLine(line){
+ let el=document.getElementById('completionTime');
+ if(!el){el=document.createElement('div');el.id='completionTime';el.className='small';document.getElementById('elapsedTime').insertAdjacentElement('afterend',el);}
+ el.textContent=line;el.hidden=!line;
+}
+function savedCompletionLine(text){return String(text||'').split(/\r?\n/).find(line=>line.startsWith('Solved: '))||'';}
+
+
 const colors=[['blue','#2787ff'],['green','#28b66f'],['purple','#8d55d9'],['red','#ef4545'],['yellow','#f2c94c']];
 const shapes=['circle','diamond','square','star','triangle'];
 const pieces=[];
@@ -493,17 +510,18 @@ function startPracticeGame(){
 function returnToDailyResult(){
  if(!dailySnapshot){newGame();return;}
  practiceMode=false;document.querySelector('.title').innerHTML=dailyHeading;secret=[...dailySnapshot.secret];guesses=dailySnapshot.guesses.map(row=>({g:[...row.g],fb:row.fb}));current=Array(CODE_LENGTH).fill(null);selectedSlot=null;render();
- const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(piece=>code.appendChild(makeShape(piece)));document.getElementById('elapsedTime').textContent='Time: '+normalizeResultTime(dailySnapshot.elapsed);document.getElementById('result').textContent=dailySnapshot.win?'CODE CRACKED!':'OUT OF GUESSES';document.getElementById('resultText').textContent=dailySnapshot.win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';dailyResultText=normalizeResultTime(dailySnapshot.resultText).replace(/\nNotes Mode: Not used/g,'').replace(/Notes Mode: Used/g,'Notes Mode Used');shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';gameOver=true;pauseButton.disabled=true;modal.classList.add('show');
+ const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(piece=>code.appendChild(makeShape(piece)));document.getElementById('elapsedTime').textContent='Time: '+normalizeResultTime(dailySnapshot.elapsed);showCompletionLine(savedCompletionLine(dailySnapshot.resultText));document.getElementById('result').textContent=dailySnapshot.win?'CODE CRACKED!':'OUT OF GUESSES';document.getElementById('resultText').textContent=dailySnapshot.win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';dailyResultText=normalizeResultTime(dailySnapshot.resultText).replace(/\nNotes Mode: Not used/g,'').replace(/Notes Mode: Used/g,'Notes Mode Used');shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';gameOver=true;pauseButton.disabled=true;modal.classList.add('show');
 }
 function endGame(win){
+ completionTimestamp=win?(restoredCompletionTimestamp===undefined?new Date().toISOString():restoredCompletionTimestamp):null;restoredCompletionTimestamp=undefined;
  const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(p=>code.appendChild(makeShape(p)));
  gameOver=true;pauseButton.disabled=true;
  const elapsed=formatElapsed(elapsedMilliseconds());
- document.getElementById('elapsedTime').textContent='Time: '+elapsed;
+ document.getElementById('elapsedTime').textContent='Time: '+elapsed;showCompletionLine(completionLine());
  if(practiceMode){
    shareButton.hidden=true;returnDailyButton.hidden=false;againButton.textContent='PLAY ANOTHER RANDOM';
  }else{
-   dailyResultText=`CodeTest2 — ${DAILY_LABEL}\n${displayDailyDate(activeDailyDate)}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${notesUsed?'\nNotes Mode Used':''}`;
+   dailyResultText=`CodeTest2 — ${DAILY_LABEL}\n${displayDailyDate(activeDailyDate)}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${completionLine()?'\n'+completionLine():''}${notesUsed?'\nNotes Mode Used':''}`;
    dailySnapshot={win,elapsed,resultText:dailyResultText,secret:[...secret],guesses:guesses.map(row=>({g:[...row.g],fb:row.fb}))};shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';
  }
  document.getElementById('shareStatus').textContent='';
@@ -557,12 +575,12 @@ function drawResultShape(ctx,piece,x,y,size){
 async function createFriendResultImage(){
  const logoImage=await new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>resolve(null);image.src=headerLogoSrc;});
  if(!logoImage)throw new Error('CodeTest2 logo unavailable');
- const width=1080,rowHeight=130,headerHeight=380,solutionHeight=190,height=headerHeight+guesses.length*rowHeight+solutionHeight;
+ const width=1080,rowHeight=130,headerHeight=420,solutionHeight=190,height=headerHeight+guesses.length*rowHeight+solutionHeight;
  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');
  ctx.fillStyle='#08111f';ctx.fillRect(0,0,width,height);ctx.strokeStyle='#30445f';ctx.lineWidth=3;ctx.strokeRect(18,18,width-36,height-36);
  {const logoWidth=520,logoHeight=Math.min(145,logoWidth*(logoImage.naturalHeight/logoImage.naturalWidth));ctx.drawImage(logoImage,(width-logoWidth)/2,28,logoWidth,logoHeight);}
  ctx.fillStyle='#eef4ff';ctx.textAlign='center';dailyResultText.split('\n').forEach((line,index)=>{const displayed=index===0?line.replace(/^CodeTest2\s+—\s+/,''):line;ctx.font=index===0?'800 31px system-ui':'650 25px system-ui';ctx.fillText(displayed,width/2,190+index*36);});
- ctx.fillStyle='#9fb1c8';ctx.font='700 22px system-ui';ctx.fillText('GUESS',330,365);ctx.fillText('SHAPE',750,365);ctx.fillText('COLOR',865,365);ctx.fillText('COMBO',980,365);
+ ctx.fillStyle='#9fb1c8';ctx.font='700 22px system-ui';ctx.fillText('GUESS',330,405);ctx.fillText('SHAPE',750,405);ctx.fillText('COLOR',865,405);ctx.fillText('COMBO',980,405);
  const feedbackColors={black:'#17191f',gray:'#e7d3a7',empty:'#65758a'};
  guesses.forEach((round,index)=>{
    const top=headerHeight+index*rowHeight;ctx.fillStyle=index%2?'#0d1828':'#111e31';ctx.fillRect(38,top-5,width-76,rowHeight-10);
@@ -684,7 +702,7 @@ endGame=function(win){
  standardEndGame(win);
  if(friendChallengeActive){
    const elapsed=formatElapsed(elapsedMilliseconds());
-   dailyResultText=`CodeTest2 — Friend Challenge\n${displayDailyDate(dailyDateKey())}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${notesUsed?'\nNotes Mode Used':''}`;
+   dailyResultText=`CodeTest2 — Friend Challenge\n${displayDailyDate(dailyDateKey())}\n${win?`Solved in ${guesses.length}/6 guesses`:'Not solved in 6 guesses'}\nTime: ${elapsed}${completionLine()?'\n'+completionLine():''}${notesUsed?'\nNotes Mode Used':''}`;
    shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='CREATE A CHALLENGE';
    document.getElementById('resultText').textContent=win?`You cracked your friend's code in ${guesses.length} round${guesses.length===1?'':'s'}.`:'Your friend’s code was:';
    preparedFriendResultBlob=null;shareButton.disabled=false;document.getElementById('shareStatus').textContent='';
