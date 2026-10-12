@@ -195,6 +195,13 @@ html,body{height:100%;overflow:hidden}body{height:100dvh;display:flex;align-item
 .stats-modal{z-index:11000}.stats-record{background:#0b1524;border:1px solid #3a4d6a;border-radius:9px;padding:12px;margin:10px 0}.stats-record>b{color:#eef4ff;font-size:13px}.stats-record table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;color:#c6d5e8}.stats-record th{font-weight:600;text-align:left;width:35%;padding:7px 6px 7px 0}.stats-record td{padding:7px 0}.stats-footnote{font-size:11px!important}.stats-result-button{margin:5px}.topbar .stats-button{flex:0 0 auto}@media(max-width:850px){.topbar{grid-template-columns:repeat(3,minmax(0,1fr))}.topbar .title{grid-column:1/-1}.topbar .pause-button,.topbar .instructions-button{grid-column:auto;text-align:center;width:100%}}
 
 .stats-review-modal{z-index:12001}.stats-review-modal .instructions-card{width:min(760px,100%)}.stats-review-board .round-block{height:90px;min-height:0;margin:6px 0}.stats-review-board .cell{min-height:0}.stats-review-board .guess-piece{cursor:default}.stats-record-link{background:transparent;border:0;padding:0;color:#9feeff;text-align:left;font:inherit;text-decoration:underline;cursor:pointer}.stats-record-link:focus-visible{outline:2px solid #9feeff;outline-offset:3px}@media(max-width:850px){.stats-review-board .round-block{height:70px}.stats-review-modal .instructions-card{padding:12px}.stats-review-modal .code{gap:8px}.stats-review-modal .code .shape{width:38px;height:38px}}
+
+/* Saved puzzle pieces use equal dimensions at every screen size. */
+.stats-review-board .guess-piece .shape{width:38px;height:38px;aspect-ratio:1;flex-shrink:0}
+.stats-review-board .guess-piece .shape.diamond{width:27px;height:27px}
+.stats-review-modal .code .shape{width:42px;height:42px;aspect-ratio:1;flex-shrink:0}
+.stats-review-modal .code .shape.diamond{width:30px;height:30px}
+@media(max-width:850px){.stats-review-board .guess-piece .shape{width:28px;height:28px}.stats-review-board .guess-piece .shape.diamond{width:20px;height:20px}.stats-review-modal .code .shape{width:34px;height:34px}.stats-review-modal .code .shape.diamond{width:24px;height:24px}}
 </style>
 </head>
 <body>
