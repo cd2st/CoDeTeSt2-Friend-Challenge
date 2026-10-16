@@ -262,7 +262,32 @@ const BROWSER_STATS_GROUPS=[['friend','Friend Challenge']];
 let statsAttemptId=null,statsRestoringResult=false;
 let browserStatsKind=()=> 'daily',browserStatsSave=()=>{};
 let statsMemory={version:1,notesCombined:true,attempts:{}},statsStorageAvailable=true;
-function loadBrowserStats(){if(!statsStorageAvailable)return statsMemory;try{const saved=JSON.parse(localStorage.getItem(BROWSER_STATS_KEY)||'null');if(saved?.version===1&&saved.attempts&&typeof saved.attempts==='object'&&!Array.isArray(saved.attempts)){let changed=false;if(!saved.notesCombined){combineBrowserStats(saved);changed=true;}if(repairStoredStatsPuzzles(saved))changed=true;if(changed)saveBrowserStats(saved);statsMemory=saved;return saved;}}catch(e){statsStorageAvailable=false;}return statsMemory;}
+const BROWSER_STATS_BASELINE_DAY='2026-10-16';
+function addBaselineDailyStats(data,statsKey){
+ const mode={'CoDeTeSt2.stats.basic.v2':'entry','CoDeTeSt2.stats.no-repeats.v2':'noRepeat','CoDeTeSt2.stats.may-repeat.v2':'mayRepeat'}[statsKey];if(!mode)return false;
+ const day=BROWSER_STATS_BASELINE_DAY;let source=null;try{source=JSON.parse(localStorage.getItem(`CoDeTeSt2.daily.${mode}.${day}`)||'null');}catch(e){}
+ const existing=Object.values(data.attempts).find(record=>record?.kind==='daily'&&(record.dailyDate===day||record.snapshot?.dailyDate===day));if(existing?.finished)return false;
+ if(source&&typeof source.win==='boolean'){
+  const snapshot={version:1,secret:source.secret,guesses:source.guesses,finishedAt:source.finishedAt||'',dailyDate:day,finishedLabel:savedCompletionLine(source.resultText)};
+  if(validStatsPuzzle(snapshot)){
+   let elapsed=source.elapsedMs;if(!Number.isFinite(elapsed)){elapsed=0;let found=false;for(const match of String(source.elapsed||'').matchAll(/(\d+)\s*(hour|minute|second)s?/g)){found=true;elapsed+=Number(match[1])*({hour:3600000,minute:60000,second:1000}[match[2]]);}if(!found)return false;}if(elapsed<0)return false;
+   const signature=JSON.stringify({secret:snapshot.secret,guesses:snapshot.guesses});const match=Object.entries(data.attempts).find(([id,record])=>record?.kind==='daily'&&(record===existing||id===source.statsAttemptId||(validStatsPuzzle(record.snapshot)&&JSON.stringify({secret:record.snapshot.secret,guesses:record.snapshot.guesses})===signature)));
+   if(match?.[1].finished)return false;
+   const id=match?.[0]||source.statsAttemptId||'daily-'+day;if(data.attempts[id]&&data.attempts[id].kind!=='daily')return false;
+   data.attempts[id]={kind:'daily',dailyDate:day,finished:true,win:source.win,rounds:snapshot.guesses.length,elapsed,used:typeof source.notesUsed==='boolean'?source.notesUsed:resultUsedNotes(source.resultText),snapshot};return true;
+  }
+ }
+ // Preserve an attempt already underway on the reset date as a played game.
+ if(existing)return false;let progress=null;try{progress=JSON.parse(localStorage.getItem(`CoDeTeSt2.progress.${mode}.v1`)||'null');}catch(e){}
+ if(progress&&!progress.practiceMode&&!progress.completed&&(progress.challengeDate||progress.activeDailyDate)===day&&Array.isArray(progress.secret)&&progress.secret.length===CODE_LENGTH&&(progress.clockStarted||progress.guesses?.length||progress.current?.some(Boolean))){const id=progress.statsAttemptId||'daily-'+day;if(!data.attempts[id]){data.attempts[id]={kind:'daily',dailyDate:day,finished:false};return true;}}
+ return false;
+}
+function readFreshBrowserStats(statsKey){
+ const raw=localStorage.getItem(statsKey),saved=raw?JSON.parse(raw):{version:1,notesCombined:true,attempts:{}};if(saved?.version!==1||!saved.attempts||typeof saved.attempts!=='object'||Array.isArray(saved.attempts))throw Error('Invalid stats');
+ let changed=addBaselineDailyStats(saved,statsKey);if(!saved.notesCombined){combineBrowserStats(saved);changed=true;}if(repairStoredStatsPuzzles(saved))changed=true;if(changed)localStorage.setItem(statsKey,JSON.stringify(saved));return saved;
+}
+
+function loadBrowserStats(){if(!statsStorageAvailable)return statsMemory;try{statsMemory=readFreshBrowserStats(BROWSER_STATS_KEY);}catch(e){statsStorageAvailable=false;}return statsMemory;}
 function saveBrowserStats(data){statsMemory=data;try{localStorage.setItem(BROWSER_STATS_KEY,JSON.stringify(data));statsStorageAvailable=true;}catch(e){statsStorageAvailable=false;}}
 function statsStarted(data,id,kind){if(!data.attempts[id])data.attempts[id]={kind,finished:false};return data;}
 function statsFinished(data,id,kind,win,rounds,elapsed,used,snapshot){statsStarted(data,id,kind);if(data.attempts[id].finished)return data;data.attempts[id]={kind,finished:true,win:!!win,rounds,elapsed,used:!!used};if(snapshot)data.attempts[id].snapshot=snapshot;return data;}
@@ -284,7 +309,7 @@ function closeBrowserHistory(){if(!statsHistoryDialog)return;closeSavedStatsPuzz
 function statsHistoryDate(snapshot){const date=new Date(snapshot?.finishedAt||'');return Number.isFinite(date.getTime())?new Intl.DateTimeFormat('en-US',{timeZone:DAILY_TIME_ZONE,month:'2-digit',day:'2-digit',year:'2-digit',hour:'numeric',minute:'2-digit',hour12:true}).format(date)+' CT':snapshot?.finishedLabel||(snapshot?.dailyDate?'Daily puzzle: '+snapshot.dailyDate:'Date not recorded');}
 const BROWSER_STATS_VARIATIONS=[{id:'basic',label:'Basic',key:'CoDeTeSt2.stats.basic.v2'},{id:'no-repeats',label:'Challenge — No Repeats',key:'CoDeTeSt2.stats.no-repeats.v2'},{id:'may-repeat',label:'Challenge — May Repeat',key:'CoDeTeSt2.stats.may-repeat.v2'},{id:'friend',label:'Friend Challenge',key:'CoDeTeSt2.stats.friend.v2'}];
 function historyRecordLabel(record){const variation=record.historyLabel||'',mode=record.kind==='daily'?'Daily':record.kind==='random'?'Random':variation?'':BROWSER_STATS_GROUPS.find(([kind])=>kind===record.kind)?.[1]||'';return [variation,mode].filter(Boolean).join(' · ')||'Puzzle';}
-function readBrowserHistory(){const records=[];let incomplete=false;for(const variation of BROWSER_STATS_VARIATIONS){try{const data=variation.key===BROWSER_STATS_KEY?loadBrowserStats():JSON.parse(localStorage.getItem(variation.key)||'null');if(data?.version!==1||!data.attempts||typeof data.attempts!=='object'||Array.isArray(data.attempts))continue;for(const [id,record] of Object.entries(data.attempts)){if(record?.finished)records.push({...record,historyVariation:variation.id,historyLabel:variation.label,historyAttemptId:id});}}catch(e){incomplete=true;}}records.reverse();records.sort((a,b)=>(Date.parse(b.snapshot?.finishedAt||b.dailyDate)||0)-(Date.parse(a.snapshot?.finishedAt||a.dailyDate)||0));return {records,incomplete};}
+function readBrowserHistory(){const records=[];let incomplete=false;for(const variation of BROWSER_STATS_VARIATIONS){try{const data=variation.key===BROWSER_STATS_KEY?loadBrowserStats():readFreshBrowserStats(variation.key);if(data?.version!==1||!data.attempts||typeof data.attempts!=='object'||Array.isArray(data.attempts))continue;for(const [id,record] of Object.entries(data.attempts)){if(record?.finished)records.push({...record,historyVariation:variation.id,historyLabel:variation.label,historyAttemptId:id});}}catch(e){incomplete=true;}}records.reverse();records.sort((a,b)=>(Date.parse(b.snapshot?.finishedAt||b.dailyDate)||0)-(Date.parse(a.snapshot?.finishedAt||a.dailyDate)||0));return {records,incomplete};}
 function openBrowserHistory(trigger){
  if(statsHistoryDialog)return;statsHistoryReturnFocus=trigger;
  const {records,incomplete}=readBrowserHistory();
