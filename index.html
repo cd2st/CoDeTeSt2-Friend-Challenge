@@ -348,6 +348,7 @@ function showCompletionLine(line){
  el.textContent=line;el.hidden=!line;
 }
 function resultUsedNotes(text){return /(?:^|\r?\n)Notes Mode(?::)? Used(?:\r?\n|$)/.test(String(text||''));}
+function showResultPuzzleName(){const variation={'CoDeTeSt2.stats.basic.v2':'Basic','CoDeTeSt2.stats.no-repeats.v2':'No Repeats Challenge','CoDeTeSt2.stats.may-repeat.v2':'May Repeat Challenge','CoDeTeSt2.stats.friend.v2':'Friend Challenge'}[BROWSER_STATS_KEY],kind=browserStatsKind();let label=document.getElementById('resultPuzzleName');if(!label){label=document.createElement('p');label.id='resultPuzzleName';label.style.cssText='margin:8px 0 12px;color:#9feeff;font-size:16px;font-weight:700';document.getElementById('result').insertAdjacentElement('afterend',label);}label.textContent=variation+(kind==='daily'?' - Daily':kind==='random'?' - Random':'');}
 function showNotesModeResult(used){let el=document.getElementById('resultNotesMode');if(!el){el=document.createElement('div');el.id='resultNotesMode';el.className='small';(document.getElementById('completionTime')||document.getElementById('elapsedTime')).insertAdjacentElement('afterend',el);}el.textContent=used?'Notes Mode Used':'';el.hidden=!used;}
 function savedCompletionLine(text){return String(text||'').split(/\r?\n/).find(line=>line.startsWith('Solved: '))||'';}
 
@@ -608,7 +609,7 @@ function startPracticeGame(){
 function returnToDailyResult(){
  if(!dailySnapshot){newGame();return;}
  practiceMode=false;document.querySelector('.title').innerHTML=dailyHeading;secret=[...dailySnapshot.secret];guesses=dailySnapshot.guesses.map(row=>({g:[...row.g],fb:row.fb}));current=Array(CODE_LENGTH).fill(null);selectedSlot=null;render();
- const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(piece=>code.appendChild(makeShape(piece)));document.getElementById('elapsedTime').textContent='Time: '+normalizeResultTime(dailySnapshot.elapsed);showCompletionLine(savedCompletionLine(dailySnapshot.resultText));showNotesModeResult(resultUsedNotes(dailySnapshot.resultText));document.getElementById('result').textContent=dailySnapshot.win?'CODE CRACKED!':'OUT OF GUESSES';document.getElementById('resultText').textContent=dailySnapshot.win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';dailyResultText=normalizeResultTime(dailySnapshot.resultText).replace(/\nNotes Mode: Not used/g,'').replace(/Notes Mode: Used/g,'Notes Mode Used');shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';gameOver=true;pauseButton.disabled=true;modal.classList.add('show');
+ const modal=document.getElementById('modal'),code=document.getElementById('code');code.innerHTML='';secret.forEach(piece=>code.appendChild(makeShape(piece)));document.getElementById('elapsedTime').textContent='Time: '+normalizeResultTime(dailySnapshot.elapsed);showCompletionLine(savedCompletionLine(dailySnapshot.resultText));showNotesModeResult(resultUsedNotes(dailySnapshot.resultText));document.getElementById('result').textContent=dailySnapshot.win?'CODE CRACKED!':'OUT OF GUESSES';showResultPuzzleName();document.getElementById('resultText').textContent=dailySnapshot.win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';dailyResultText=normalizeResultTime(dailySnapshot.resultText).replace(/\nNotes Mode: Not used/g,'').replace(/Notes Mode: Used/g,'Notes Mode Used');shareButton.hidden=false;returnDailyButton.hidden=true;againButton.textContent='PLAY RANDOM PUZZLE';gameOver=true;pauseButton.disabled=true;modal.classList.add('show');
 }
 function endGame(win){
  completionTimestamp=win?(restoredCompletionTimestamp===undefined?new Date().toISOString():restoredCompletionTimestamp):null;restoredCompletionTimestamp=undefined;
@@ -624,7 +625,7 @@ function endGame(win){
  }
  document.getElementById('shareStatus').textContent='';
  document.getElementById('shareFallback').hidden=true;
- document.getElementById('result').textContent=win?'CODE CRACKED!':'OUT OF GUESSES';
+ document.getElementById('result').textContent=win?'CODE CRACKED!':'OUT OF GUESSES';showResultPuzzleName();
  document.getElementById('resultText').textContent=win?`You solved it in ${guesses.length} round${guesses.length===1?'':'s'}.`:'The hidden code was:';modal.classList.add('show');
 }
 function openDesktopSharePanel(blob,fileName,resultToShare,shareKind){
